@@ -16,7 +16,7 @@ await engine.destroy();
 
 URLs and headers must be accessible to the host. Native networking belongs in
 the app adapter; this package does not bypass browser security or run FFmpeg.
-Volumes use 0â€“1; media positions and subtitle delays use seconds. Track IDs are
+Volumes use 0Ã¢â‚¬â€œ1; media positions and subtitle delays use seconds. Track IDs are
 libmedia IDs, not array indices. Diagnostics report only exposed library data.
 
 Import `copyLibmediaAssets` and `libmediaChunkPlugin` from
@@ -32,7 +32,7 @@ Bundling all decoders for offline operation is not part of this extraction.
 
 ## GitHub distribution
 
-The source lives at https://github.com/vega-org/vega-libmedia-engine.
+The source lives at https://github.com/vega-org/web-player-engine.
 This package is private to prevent accidental npm publication; GitHub installs
 still work. Both consumers pin the same full Git commit, not a moving branch.
 GitHub HTTPS source archives avoid requiring SSH keys during app installation.
@@ -40,7 +40,7 @@ GitHub HTTPS source archives avoid requiring SSH keys during app installation.
 After committing and pushing an engine update, run in each consumer:
 
 ```sh
-npm install --ignore-scripts --save-exact @vega/libmedia-engine@https://codeload.github.com/vega-org/vega-libmedia-engine/tar.gz/<full-commit-sha>
+npm install --ignore-scripts --save-exact @vega/libmedia-engine@https://codeload.github.com/vega-org/web-player-engine/tar.gz/<full-commit-sha>
 ```
 
 For Vega Site, add `--workspace @vega/web-cast` to that command.
