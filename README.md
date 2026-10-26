@@ -1,5 +1,17 @@
 # Shared libmedia playback engine
 
+## Credits
+
+Powered by [libmedia](https://github.com/zhaohappy/libmedia), created by
+[Gaoxing Zhao (zhaohappy)](https://github.com/zhaohappy) and its contributors.
+The underlying AVPlayer, demuxing, decoding, rendering and media synchronization
+come from libmedia. Vega provides the shared app adapter, integration and patches;
+it does not claim authorship of libmedia.
+
+libmedia is distributed under LGPL-3.0-or-later. See the
+[upstream license](https://github.com/zhaohappy/libmedia/blob/master/COPYING.LGPLv3)
+and [third-party notices](THIRD_PARTY_NOTICES.md).
+
 The authoritative playback implementation for Vega Cast and Vega Desktop.
 This package contains no React, Vidstack, pairing, signaling, providers or app UI.
 Hosts attach a div, supply source descriptors, and subscribe to playback state.

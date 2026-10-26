@@ -4,7 +4,8 @@
   "type": "module",
   "files": [
     "src",
-    "scripts"
+    "scripts",
+    "THIRD_PARTY_NOTICES.md"
   ],
   "exports": {
     ".": "./src/player/LibmediaEngine.ts",
