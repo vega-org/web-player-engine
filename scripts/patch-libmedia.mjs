@@ -1,6 +1,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import {fileURLToPath} from 'node:url';
+import {subtitleTextToAss} from './subtitle-text.mjs';
+import {readWasmErrorText} from './wasm-error-text.mjs';
 const file=fileURLToPath(import.meta.resolve('@libmedia/avplayer'));
 const source=fs.readFileSync(file,'utf8');
 // Text cues may contain ASS overrides (e.g. SRT {\an8}). Use libmedia's
@@ -8,10 +10,12 @@ const source=fs.readFileSync(file,'utf8');
 const subtitleFile=path.join(path.dirname(file),'630.avplayer.js');
 let subtitle=fs.readFileSync(subtitleFile,'utf8');
 const plainText='Text:{raw:e,combined:e,parsed:[{tags:[],text:e,drawing:[]}]}}}webvtt2AssEvent';
-const parsedText='Text:(0,u.r)(e.replace(/\\r?\\n/g,"\\\\N"))}}webvtt2AssEvent';
+const oldParsedText='Text:(0,u.r)(e.replace(/\\r?\\n/g,"\\\\N"))}}webvtt2AssEvent';
+const parsedText=`Text:(0,u.r)((${subtitleTextToAss.toString()})(e))}}webvtt2AssEvent`;
 if(!subtitle.includes(parsedText)){
- if(subtitle.split(plainText).length!==2)throw new Error('libmedia subtitle override patch does not match this version');
- subtitle=subtitle.replace(plainText,parsedText);
+ const previous=subtitle.includes(oldParsedText)?oldParsedText:plainText;
+ if(subtitle.split(previous).length!==2)throw new Error('libmedia subtitle override patch does not match this version');
+ subtitle=subtitle.replace(previous,parsedText);
  fs.writeFileSync(subtitleFile,subtitle);
 }
 // MKV LanguageIETF takes precedence over legacy Language. Some muxers only
@@ -56,4 +60,14 @@ const newSeek='for(let subtitleIndex=0;subtitleIndex<this.externalSubtitleTasks.
 if(!seekSource.includes(newSeek)){
  if(seekSource.split(oldSeek).length!==2)throw new Error('libmedia external subtitle seek patch does not match this version');
  fs.writeFileSync(file,seekSource.replace(oldSeek,newSeek));
+}
+
+// 1.3.1 readCString advances the pointer while measuring, then reads after
+// the terminator. Scope this correction to WASM exceptions, not every string.
+const errorSource=fs.readFileSync(file,'utf8');
+const oldWasmError='function S(e,t){throw new Error((0,l.lH)(t))}';
+const newWasmError=`function S(e,t){const error=new Error((${readWasmErrorText.toString()})(t,address=>r.f[4](address)));error.code=e;throw error}`;
+if(!errorSource.includes(newWasmError)){
+ if(errorSource.split(oldWasmError).length!==2)throw new Error('libmedia WASM error text patch does not match this version');
+ fs.writeFileSync(file,errorSource.replace(oldWasmError,newWasmError));
 }

@@ -2,8 +2,38 @@ import type { PlaybackError } from '../core/playback-state';
 
 export function normalizePlaybackError(error: unknown): PlaybackError {
   const timestamp = Date.now();
-  const rawDetails = error instanceof Error ? `${error.name}: ${error.message}\n${error.stack ?? ''}` : String(error);
-  const msg = error instanceof Error ? error.message : String(error);
+  const seen = new Set<object>();
+  const describe = (value: unknown, depth = 0): unknown => {
+    if (!value || typeof value !== 'object') return value;
+    if (seen.has(value) || depth > 4) return '[nested error]';
+    seen.add(value);
+    const result: Record<string, unknown> = {};
+    // Preserve useful exception fields, including non-enumerable Error fields,
+    // without copying request headers or other unrelated event data.
+    for (const key of ['name', 'message', 'stack', 'code', 'errorCode', 'cause', 'error', 'reason']) {
+      try {
+        const field = (value as Record<string, unknown>)[key];
+        if (field !== undefined) result[key] = describe(field, depth + 1);
+      } catch { result[key] = '[unavailable]'; }
+    }
+    return result;
+  };
+  const rawDetails = typeof error === 'object' && error !== null
+    ? JSON.stringify(describe(error), (_, value) => typeof value === 'bigint' ? value.toString() : value, 2)
+    : String(error);
+  const value = error && typeof error === 'object' ? error as Record<string, unknown> : null;
+  const nested = value?.error && typeof value.error === 'object'
+    ? value.error as Record<string, unknown> : null;
+  const detail = value?.message ?? nested?.message ?? value?.reason;
+  const text = error instanceof Error ? error.message
+    : typeof detail === 'string' ? detail
+    : typeof error === 'number' ? `Libmedia playback failed (code: ${error})`
+    : typeof error === 'string' ? error : '';
+  // Some library failures supply only the source URL. It is not an error
+  // explanation, and signed URL credentials must not become a UI message.
+  const msg = /^\s*(?:https?:|blob:|data:)/i.test(text)
+    ? 'Playback failed. Libmedia did not provide an error reason.'
+    : text || 'Playback failed. Libmedia did not provide an error reason.';
   const lowerMsg = msg.toLowerCase();
 
   let category: PlaybackError['category'] = 'UNKNOWN_ERROR';
@@ -27,6 +57,9 @@ export function normalizePlaybackError(error: unknown): PlaybackError {
     recoverable = true;
   } else if (lowerMsg.includes('network') || lowerMsg.includes('failed to fetch') || lowerMsg.includes('offline') || lowerMsg.includes('timeout') || lowerMsg.includes('http')) {
     category = 'NETWORK_ERROR';
+    recoverable = true;
+  } else if (lowerMsg.includes('unsupported bitstream profile')) {
+    category = 'UNSUPPORTED_VIDEO_CODEC';
     recoverable = true;
   } else if (lowerMsg.includes('format') || lowerMsg.includes('container') || lowerMsg.includes('demux') || lowerMsg.includes('open stream failed')) {
     category = 'UNSUPPORTED_CONTAINER';
